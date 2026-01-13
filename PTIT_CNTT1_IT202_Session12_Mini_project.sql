@@ -84,7 +84,7 @@ delimiter //
 create procedure GetStudentsIT()
 begin
 	select d.DeptName, s.StudentID, s.FullName, s.gender, s.BirthDate
-    from student s join department d on s.DeptID = d.DeptID where d.DeptName = 'Information Technology';
+    from student s join department d on s.DeptID = d.DeptID where d.DeptName = 'IT';
 end //
 delimiter ;
 call GetStudentsIT();
