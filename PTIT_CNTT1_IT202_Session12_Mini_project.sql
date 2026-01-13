@@ -1,43 +1,43 @@
 CREATE DATABASE StudentDB;
 USE StudentDB;
 -- 1. Bảng Khoa
-CREATE TABLE Department (
+CREATE TABLE department (
     DeptID CHAR(5) PRIMARY KEY,
     DeptName VARCHAR(50) NOT NULL
 );
 
 -- 2. Bảng SinhVien
-CREATE TABLE Student (
+CREATE TABLE student (
     StudentID CHAR(6) PRIMARY KEY,
     FullName VARCHAR(50),
     Gender VARCHAR(10),
     BirthDate DATE,
     DeptID CHAR(5),
-    FOREIGN KEY (DeptID) REFERENCES Department(DeptID)
+    FOREIGN KEY (DeptID) REFERENCES department(DeptID)
 );
 
 -- 3. Bảng MonHoc
-CREATE TABLE Course (
+CREATE TABLE course (
     CourseID CHAR(6) PRIMARY KEY,
     CourseName VARCHAR(50),
     Credits INT
 );
 
 -- 4. Bảng DangKy
-CREATE TABLE Enrollment (
+CREATE TABLE enrollment (
     StudentID CHAR(6),
     CourseID CHAR(6),
     Score FLOAT,
     PRIMARY KEY (StudentID, CourseID),
-    FOREIGN KEY (StudentID) REFERENCES Student(StudentID),
-    FOREIGN KEY (CourseID) REFERENCES Course(CourseID)
+    FOREIGN KEY (StudentID) REFERENCES student(StudentID),
+    FOREIGN KEY (CourseID) REFERENCES course(CourseID)
 );
-INSERT INTO Department VALUES
+INSERT INTO department VALUES
 ('IT','Information Technology'),
 ('BA','Business Administration'),
 ('ACC','Accounting');
 
-INSERT INTO Student VALUES
+INSERT INTO student VALUES
 ('S00001','Nguyen An','Male','2003-05-10','IT'),
 ('S00002','Tran Binh','Male','2003-06-15','IT'),
 ('S00003','Le Hoa','Female','2003-08-20','BA'),
@@ -47,13 +47,13 @@ INSERT INTO Student VALUES
 ('S00007','Nguyen Mai','Female','2003-07-07','ACC'),
 ('S00008','Tran Phuc','Male','2003-09-09','IT');
 
-INSERT INTO Course VALUES
+INSERT INTO course VALUES
 ('C00001','Database Systems',3),
 ('C00002','C Programming',3),
 ('C00003','Microeconomics',2),
 ('C00004','Financial Accounting',3);
 
-INSERT INTO Enrollment VALUES
+INSERT INTO enrollment VALUES
 ('S00001','C00001',8.5),
 ('S00001','C00002',7.0),
 ('S00002','C00001',6.5),
@@ -84,7 +84,7 @@ delimiter //
 create procedure GetStudentsIT()
 begin
 	select d.DeptName, s.StudentID, s.FullName, s.gender, s.BirthDate
-    from student s join department d on s.DeptID = d.DeptID;
+    from student s join department d on s.DeptID = d.DeptID where d.DeptName = 'Information Technology';
 end //
 delimiter ;
 call GetStudentsIT();
@@ -96,18 +96,18 @@ create or replace view View_StudentCountByDept as
 select 
 	d.DeptName,
     count(s.StudentID) as TotalStudents
-from department d join student s on d.DeptID = s.DeptID;
+from department d join student s on d.DeptID = s.DeptID group by d.DeptName;
+
 -- b)Từ View trên, viết truy vấn hiển thị khoa có nhiều sinh viên nhất.
-select
-    d.DeptName,
-    v.TotalStudents
-from department d join View_StudentCountByDept v on d.DeptID = v.DeptID;
+select * from View_StudentCountByDept 
+order by TotalStudents desc limit 1;
+
 -- Câu 5:Viết Stored Procedure GetTopScoreStudent
 -- Tham số: IN p_CourseID
 -- Chức năng: Hiển thị sinh viên có điểm cao nhất trong môn học được truyền vào. 
 delimiter //
 create procedure GetTopScoreStudent(
-	in p_Course varchar(10)
+	in p_Course char(6)
 )
 begin
 	select
@@ -119,6 +119,7 @@ begin
 		);
 end //
 delimiter ;
+
 -- b) Gọi thủ tục trên để tìm sinh viên có điểm cao nhất môn Database Systems (C00001)
 call GetTopScoreStudent('C00001');
 
@@ -126,17 +127,15 @@ call GetTopScoreStudent('C00001');
 -- Bài 6: 
 -- a) – Tạo VIEW
 -- Tạo View View_IT_Enrollment_DB
--- Hiển thị các sinh viên:
--- Thuộc khoa IT
--- Đăng ký môn C00001
+-- Hiển thị các sinh viên: Thuộc khoa IT, Đăng ký môn C00001
 -- View phải có WITH CHECK OPTION.
-
 create or replace view View_IT_Enrollment_DB as
 select e.StudentID, e.CourseID, e.Score
 from Enrollment e join Student s on e.StudentID = s.StudentID
                   join Department d on s.DeptID = d.DeptID
 where d.DeptName = 'Information Technology' and e.CourseID = 'C00001'
 with check option;
+
 -- b)Viết Stored Procedure UpdateScore_IT_DB
 -- Tham số:
 -- IN p_StudentID
@@ -159,13 +158,18 @@ end //
 delimiter ;
 
 -- c) GỌI THỦ TỤC
--- viết lệnh CALL để kiểm tra thủ tục:
--- Yêu cầu:
--- Khai báo biến để nhận giá trị INOUT.
--- Gọi thủ tục để cập nhật điểm cho một sinh viên bất kỳ thuộc khoa IT.
--- Sau khi gọi:
+-- Khai báo biến để nhận giá trị INOUT
+set @newScore = 9;
+
+-- Gọi thủ tục để cập nhật điểm cho một sinh viên bất kỳ thuộc khoa IT
+call UpdateScore_IT_DB('S00003', @newScore);
+
 -- Hiển thị lại giá trị điểm mới.
+select @newScore as UpdatedScore;
+
 -- Kiểm tra dữ liệu trong View View_IT_Enrollment_DB.
+select * from View_IT_Enrollment_DB;
+
 
 
 
